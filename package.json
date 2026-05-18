@@ -1,0 +1,7 @@
+{
+  "name": "sabec-os",
+  "devDependencies": {
+    "jimp": "^1.6.1",
+    "sharp": "^0.34.5"
+  }
+}
