@@ -1,7 +1,7 @@
 #!/bin/bash
 # Abre o painel do Sabec/Os — sobe o servidor local e abre o navegador.
 # Duplo-clique no Finder executa esse arquivo no Terminal (extensão .command).
-# Na primeira vez, dar permissão de execução: chmod +x "Abrir Sabec.command"
+# Na primeira vez, dar permissão de execução: chmod +x "Abrir sabecOS.command"
 
 set -e
 cd "$(dirname "$0")"

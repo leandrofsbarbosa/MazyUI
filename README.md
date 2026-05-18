@@ -40,8 +40,8 @@ memória (`_memoria/empresa.md`, `_memoria/preferencias.md`,
 
 Após o `/instalar`, todo uso cotidiano acontece pelo painel local.
 
-- **Windows:** dois cliques em `Abrir Sabec.bat`
-- **macOS:** dois cliques em `Abrir Sabec.command`
+- **Windows:** dois cliques em `Abrir sabecOS.bat`
+- **macOS:** dois cliques em `Abrir sabecOS.command`
 
 O servidor sobe em `http://localhost:7777` e o navegador abre
 automaticamente.
@@ -53,7 +53,7 @@ primeira execução:
 
 ```
 cd "caminho/da/pasta/sabec-os"
-chmod +x "Abrir Sabec.command"
+chmod +x "Abrir sabecOS.command"
 ```
 
 Em seguida, clique com o botão direito sobre o arquivo → **Abrir** →

@@ -59,10 +59,12 @@
   .brand .mark {
     font-family: var(--syne);
     font-weight: 800;
-    font-size: 28px;
+    font-size: 22px;
     letter-spacing: -0.04em;
     line-height: 1;
+    color: var(--paper);
   }
+  .brand .mark .slash { color: #D9A07A; }
   .brand .mark .os { color: var(--red); }
   .brand-logo {
     display: none;
@@ -1656,7 +1658,7 @@
     <div class="brand">
       <div class="authors">feito por Diogo Sabec</div>
       <div class="brand-logo" id="brand-logo"><img id="brand-logo-img" alt=""></div>
-      <div class="mark">Sabec<span class="os">/Os</span></div>
+      <div class="mark">Sabec<span class="slash">/</span><span class="os">OS</span></div>
       <div class="tag" id="brand-tag">Painel</div>
     </div>
     <nav class="nav" id="nav"></nav>
@@ -4516,7 +4518,7 @@ document.getElementById('btn-restart').addEventListener('click', async () => {
       statusEl.textContent = 'servidor caiu — esperando subir…';
     }
   }
-  statusEl.textContent = 'timeout — abra o painel manualmente pelo Abrir Sabec.';
+  statusEl.textContent = 'timeout — abra o painel manualmente pelo Abrir sabecOS.';
 });
 
 /* ============================================================
