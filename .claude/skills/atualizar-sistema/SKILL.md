@@ -116,6 +116,20 @@ Arquivos com merge especial (regras abaixo):
 - `package.json`
 - `CLAUDE.md`
 
+### SKILLS_DEV_ONLY (nunca propagam pros clientes)
+
+Skills que vivem no `sabec-os` central mas são de desenvolvimento do
+sistema, não de operação do cliente:
+
+```bash
+SKILLS_DEV_ONLY=("sincronizar")
+```
+
+Essas pastas existem em `.claude/skills/` do central mas são ignoradas
+em todo passo do sync (Fase 4 não compara, Fase 6.2 não copia, Fase 4
+manifest não inclui). Quando um cliente já tem uma delas por causa de
+sync antigo, a Fase 6.2 trata como órfã e remove.
+
 ### CLIENTE (não toca)
 
 NUNCA copia nem sobrescreve:
@@ -160,16 +174,37 @@ diff -q "$TMP_DIR/mazyui-server.mjs" ./mazyui-server.mjs
 
 Pra pastas, usa `diff -rq` e parseia.
 
-### Regra especial: skills customizadas
+### Regra especial: skills customizadas + remoção de órfãs
+
+A Fase 6.2 mantém um manifesto em
+`.claude/skills/.system-manifest.json` listando as skills que vieram do
+central na última sync. Isso permite distinguir "skill customizada do
+cliente" (nunca esteve no manifesto) de "skill que veio do central"
+(está no manifesto):
+
+```json
+{ "skills": ["abrir", "atualizar", "carrossel", ...] }
+```
 
 Pra `.claude/skills/<nome>/`:
 
-- Se existe **só no cliente** (não no sabec-os) → **preserva** (é skill
-  customizada do cliente, geralmente criada por `/mapear-rotinas`)
-- Se existe **só no sabec-os** (não no cliente) → **adiciona** (skill nova
-  do sistema)
-- Se existe **nos dois** → marca como "modificada" se conteúdo difere e
-  pergunta antes (pode ser que o cliente customizou a skill do sistema)
+- Está em `SKILLS_DEV_ONLY` → **ignora** em qualquer fase (não compara,
+  não copia, não inclui no manifesto). Se existe no cliente, Fase 6.2
+  remove como órfã.
+- Existe **só no cliente** e **não está no manifesto** → **preserva**
+  (skill custom do cliente, ex: criada por `/mapear-rotinas`)
+- Existe **só no cliente** e **está no manifesto anterior** → **órfã**
+  (veio do central numa sync passada, foi removida do central). Fase
+  6.2 remove.
+- Existe **só no sabec-os** → **adiciona** (skill nova do sistema)
+- Existe **nos dois** → marca como "modificada" se conteúdo difere e
+  copia direto (cliente é encorajado a não customizar skills do
+  sistema — pra customizar, copia pra `.claude/skills/<nome>-custom/`)
+
+Edge case: se `.system-manifest.json` não existe (primeira sync após
+upgrade), assume manifesto = lista atual do central. Não remove órfã
+nessa primeira passada — só registra o estado. Próximas syncs já
+removem normalmente.
 
 ## Fase 5 — Resumo das mudanças
 
@@ -229,15 +264,76 @@ copiar over. Solução simples:
 rsync -a --delete "$TMP_DIR/templates/" ./templates/
 ```
 
-Pra `.claude/skills/`: NÃO usa `--delete` (pra preservar skills
-customizadas do cliente). Faz cópia loop a loop, respeitando a regra de
-skills customizadas da Fase 4:
+Pra `.claude/skills/`: NÃO usa `--delete` global (pra preservar skills
+customizadas do cliente). Lógica em 4 passos:
 
 ```bash
+MANIFEST="./.claude/skills/.system-manifest.json"
+SKILLS_DEV_ONLY=("sincronizar")
+
+# (1) lê manifesto anterior; vazio se não existe (primeira passada após upgrade)
+if [ -f "$MANIFEST" ]; then
+  PREV_SKILLS=$(node -e "const m=require('$PWD/${MANIFEST#./}');console.log((m.skills||[]).join(' '))")
+  FIRST_PASS=0
+else
+  PREV_SKILLS=""
+  FIRST_PASS=1
+fi
+
+# (2) skills atuais do central (excluindo SKILLS_DEV_ONLY)
+CENTRAL_SKILLS=()
 for dir in "$TMP_DIR/.claude/skills/"*/; do
   skill_name=$(basename "$dir")
-  rsync -a "$dir" "./.claude/skills/$skill_name/"
+  is_dev=0
+  for d in "${SKILLS_DEV_ONLY[@]}"; do
+    [ "$d" = "$skill_name" ] && is_dev=1 && break
+  done
+  [ $is_dev -eq 1 ] && continue
+  CENTRAL_SKILLS+=("$skill_name")
 done
+
+# (3) copia cada skill do central (exceto SKILLS_DEV_ONLY)
+for skill_name in "${CENTRAL_SKILLS[@]}"; do
+  rsync -a "$TMP_DIR/.claude/skills/$skill_name/" "./.claude/skills/$skill_name/"
+done
+
+# (4) remove órfãs: skills no cliente que estavam no manifesto anterior
+#     E não estão mais no central. Também remove qualquer skill que
+#     esteja em SKILLS_DEV_ONLY (mesmo se nunca esteve no manifesto —
+#     pode ter vindo de sync antigo sem blacklist).
+if [ $FIRST_PASS -eq 0 ]; then
+  for skill_name in $PREV_SKILLS; do
+    in_central=0
+    for c in "${CENTRAL_SKILLS[@]}"; do
+      [ "$c" = "$skill_name" ] && in_central=1 && break
+    done
+    if [ $in_central -eq 0 ] && [ -d "./.claude/skills/$skill_name" ]; then
+      echo "  removendo órfã: $skill_name"
+      rm -rf "./.claude/skills/$skill_name"
+    fi
+  done
+fi
+
+# Sempre limpa skills SKILLS_DEV_ONLY que ficaram no cliente
+for d in "${SKILLS_DEV_ONLY[@]}"; do
+  if [ -d "./.claude/skills/$d" ]; then
+    echo "  removendo dev-only que vazou: $d"
+    rm -rf "./.claude/skills/$d"
+  fi
+done
+
+# (5) escreve manifesto atualizado
+node -e "
+const fs=require('fs');
+fs.writeFileSync('$MANIFEST', JSON.stringify({skills:'${CENTRAL_SKILLS[*]}'.split(' ').filter(Boolean).sort()},null,2)+'\n');
+"
+```
+
+Resumo das mudanças exibidas ao usuário inclui órfãs removidas, no
+formato:
+
+```
+  removidas (J): sincronizar (dev-only), seo (não existe mais no central)
 ```
 
 ### 6.3 — package.json (merge)
@@ -392,8 +488,11 @@ Sempre roda — mesmo se o usuário cancelou na Fase 5.
   `clientes/`, `local-routes.mjs`, `local-ui.js`
 - Não roda `git commit` automático em cima de mudanças não-relacionadas
   do cliente (a Pré-checagem #2 já bloqueia)
-- Não remove arquivos do cliente que sumiram do sabec-os — só avisa.
-  Skill customizada do cliente fica
+- Remove skills órfãs (que estavam no manifesto da última sync e
+  sumiram do central) e skills em SKILLS_DEV_ONLY. Skill customizada
+  do cliente (nunca esteve no manifesto) é preservada
+- Não remove outros arquivos do cliente que sumiram do sabec-os — só
+  avisa
 - Sempre limpa `/tmp/sabec-os-update-*` no fim, mesmo em cancelamento
 - Não atualiza `package-lock.json` — quem precisar roda `npm install`
 - Toda saída direta, sem floreio, em português brasileiro
