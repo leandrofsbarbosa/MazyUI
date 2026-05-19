@@ -19,7 +19,7 @@ agenda", "cria um endpoint pra exportar dados"), o código novo vai
 - **Servidor:** `local-routes.mjs` (via `register({ helpers, addRoute })`)
 - **UI:** `local-ui.js` (via `window.Sabec.registerPanel(def)`)
 
-**NUNCA edite `mazyui-server.mjs` ou `mazyui-ui.html` direto pra adicionar
+**NUNCA edite `mazyui-server.mjs`, `mazyui-ui.html`, `mazyui-ui.css` ou `mazyui-ui.js` direto pra adicionar
 feature de cliente.** Esses arquivos são reescritos pelo `/atualizar-sistema`
 — qualquer feature colada neles vira lixo no próximo update. Esse erro
 já aconteceu (e já fez cliente perder código).
@@ -170,12 +170,13 @@ sistema. O cliente acrescenta customizações abaixo desse separador.
 Cada cliente precisa de coisas próprias: caixa pra clínica, prontuários
 pra dentista, agenda pra terapeuta. O contrato é simples:
 
-- **Código de sistema** (`mazyui-server.mjs`, `mazyui-ui.html`) → evolui
-  no repo central, sobrescrito a cada `/atualizar-sistema`.
+- **Código de sistema** (`mazyui-server.mjs`, `mazyui-ui.html`,
+  `mazyui-ui.css`, `mazyui-ui.js`) → evolui no repo central, sobrescrito
+  a cada `/atualizar-sistema`.
 - **Código do cliente** (`local-routes.mjs`, `local-ui.js`) →
   intocável pelo sync. É onde feature custom mora.
 
-Editar `mazyui-server.mjs` ou `mazyui-ui.html` direto pra adicionar uma
+Editar `mazyui-server.mjs`, `mazyui-ui.html`, `mazyui-ui.css` ou `mazyui-ui.js` direto pra adicionar uma
 feature do cliente **vira lixo no próximo sync** — é assim que clientes
 perdem código. Use os hooks abaixo.
 
@@ -242,7 +243,7 @@ internos do sistema. O `ctx` passado pra `onMount` traz:
 
 ### O que NUNCA fazer
 
-- Editar `mazyui-server.mjs` ou `mazyui-ui.html` pra adicionar feature de
+- Editar `mazyui-server.mjs`, `mazyui-ui.html`, `mazyui-ui.css` ou `mazyui-ui.js` pra adicionar feature de
   cliente — `/atualizar-sistema` vai sobrescrever e a feature some.
 - Persistir dados do cliente em qualquer lugar fora de `dados/`,
   `_memoria/`, ou pastas custom listadas em CLIENTE na skill

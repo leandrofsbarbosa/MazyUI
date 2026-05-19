@@ -102,6 +102,8 @@ Arquivos individuais:
 
 - `mazyui-server.mjs`
 - `mazyui-ui.html`
+- `mazyui-ui.css`
+- `mazyui-ui.js`
 - `Abrir MazyUI.command`
 - `Abrir MazyUI.bat`
 - `.gitignore`
@@ -243,6 +245,8 @@ Só roda se o usuário disser [s].
 ```bash
 cp "$TMP_DIR/mazyui-server.mjs" ./mazyui-server.mjs
 cp "$TMP_DIR/mazyui-ui.html" ./mazyui-ui.html
+cp "$TMP_DIR/mazyui-ui.css" ./mazyui-ui.css
+cp "$TMP_DIR/mazyui-ui.js" ./mazyui-ui.js
 cp "$TMP_DIR/Abrir MazyUI.command" "./Abrir MazyUI.command"
 cp "$TMP_DIR/Abrir MazyUI.bat" "./Abrir MazyUI.bat"
 cp "$TMP_DIR/.gitignore" ./.gitignore
@@ -414,13 +418,13 @@ fs.writeFileSync('./CLAUDE.md', merged.endsWith('\n') ? merged : merged + '\n');
 
 Antes de commitar, confere duas invariantes:
 
-### 1. `mazyui-server.mjs` e `mazyui-ui.html` bateram com o central
+### 1. Arquivos de sistema bateram com o central
 
 ```bash
-diff -q "$TMP_DIR/mazyui-server.mjs" ./mazyui-server.mjs && \
-  echo "  ✓ mazyui-server.mjs = central" || echo "  ✗ mazyui-server.mjs DIVERGE"
-diff -q "$TMP_DIR/mazyui-ui.html" ./mazyui-ui.html && \
-  echo "  ✓ mazyui-ui.html = central" || echo "  ✗ mazyui-ui.html DIVERGE"
+for f in mazyui-server.mjs mazyui-ui.html mazyui-ui.css mazyui-ui.js; do
+  diff -q "$TMP_DIR/$f" "./$f" && \
+    echo "  ✓ $f = central" || echo "  ✗ $f DIVERGE"
+done
 ```
 
 Se algum diverge, é bug do sync — reporta e não commita.

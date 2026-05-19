@@ -483,6 +483,78 @@ async function handleOpenFolder(req, res) {
   }
 }
 
+const UPLOAD_EXT = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+  'image/svg+xml': '.svg',
+};
+const UPLOAD_MAX_BYTES = 20 * 1024 * 1024; // 20MB por imagem
+
+function readRawBody(req, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    req.on('data', c => {
+      total += c.length;
+      if (total > maxBytes) {
+        reject(new Error(`payload excede ${Math.round(maxBytes / 1024 / 1024)}MB`));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+async function handleUpload(req, res) {
+  try {
+    const raw = await readRawBody(req, UPLOAD_MAX_BYTES + 1024 * 1024);
+    let body;
+    try { body = JSON.parse(raw.toString('utf8')); }
+    catch { return json(res, 400, { error: 'JSON inválido' }); }
+
+    const { name, dataUrl } = body;
+    if (!dataUrl || typeof dataUrl !== 'string') {
+      return json(res, 400, { error: 'dataUrl obrigatório' });
+    }
+    const m = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+    if (!m) return json(res, 400, { error: 'dataUrl inválido' });
+    const mime = m[1].toLowerCase();
+    const ext = UPLOAD_EXT[mime];
+    if (!ext) return json(res, 400, { error: 'tipo não suportado: ' + mime });
+
+    const buf = Buffer.from(m[2], 'base64');
+    if (buf.length > UPLOAD_MAX_BYTES) {
+      return json(res, 413, { error: 'imagem maior que 20MB' });
+    }
+
+    const uploadsDir = path.join(ROOT, 'uploads');
+    fs.mkdirSync(uploadsDir, { recursive: true });
+
+    const baseRaw = (typeof name === 'string' ? name : '').replace(/\.[^.]+$/, '');
+    const safeBase = baseRaw
+      .normalize('NFKD').replace(/\p{M}/gu, '')
+      .replace(/[^a-zA-Z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'img';
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    const rand = Math.random().toString(36).slice(2, 8);
+    const filename = `${ts}_${rand}_${safeBase}${ext}`;
+    const abs = path.join(uploadsDir, filename);
+    fs.writeFileSync(abs, buf);
+
+    const rel = `uploads/${filename}`;
+    json(res, 200, { ok: true, path: rel, size: buf.length, mime });
+  } catch (e) {
+    json(res, 500, { error: String(e.message || e) });
+  }
+}
+
 // ============================================================
 // Roteamento — tabela única que internas e extensões populam
 // Match por (método, path) exato; primeira ocorrência ganha, então
@@ -505,6 +577,29 @@ function handleRoot(req, res) {
   res.end(html);
 }
 
+// CSS é estático (sem placeholders). Servido em streaming.
+function handleUiCss(req, res) {
+  const file = path.join(ROOT, 'mazyui-ui.css');
+  if (!fs.existsSync(file)) return text(res, 404, 'mazyui-ui.css não encontrado');
+  res.writeHead(200, {
+    'Content-Type': 'text/css; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  fs.createReadStream(file).pipe(res);
+}
+
+// JS tem placeholders {{BRAND_*}}, então aplica renderBrand igual ao HTML.
+function handleUiJs(req, res) {
+  const file = path.join(ROOT, 'mazyui-ui.js');
+  if (!fs.existsSync(file)) return text(res, 404, 'mazyui-ui.js não encontrado');
+  const js = renderBrand(fs.readFileSync(file, 'utf8'));
+  res.writeHead(200, {
+    'Content-Type': 'text/javascript; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(js);
+}
+
 // Servido com onerror silencioso pelo <script> da UI — 404 quando o cliente
 // não tem extensão; conteúdo do arquivo quando tem.
 function handleLocalUi(req, res) {
@@ -519,6 +614,8 @@ function handleLocalUi(req, res) {
 
 addRoute('GET',  '/',                    handleRoot);
 addRoute('GET',  '/index.html',          handleRoot);
+addRoute('GET',  '/mazyui-ui.css',        handleUiCss);
+addRoute('GET',  '/mazyui-ui.js',         handleUiJs);
 addRoute('GET',  '/local-ui.js',         handleLocalUi);
 addRoute('GET',  '/api/state',           handleState);
 addRoute('POST', '/api/save',            handleSave);
@@ -529,6 +626,7 @@ addRoute('POST', '/api/cancel',          handleCancel);
 addRoute('POST', '/api/shutdown',        handleShutdown);
 addRoute('POST', '/api/restart',         handleRestart);
 addRoute('POST', '/api/open-folder',     handleOpenFolder);
+addRoute('POST', '/api/upload',          handleUpload);
 addRoute('POST', '/api/snapshot-siblings', handleSnapshotSiblings);
 addRoute('POST', '/api/restore-siblings',  handleRestoreSiblings);
 
