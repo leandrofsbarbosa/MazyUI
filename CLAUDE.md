@@ -1,7 +1,7 @@
-# Sabec/Os — Sistema operacional do negócio
+# MazyUI — Sistema operacional do negócio
 
 Sua empresa roda em cima desse arquivo. Aqui ficam as regras de operação
-do Sabec/Os — como o Claude lê o contexto, aprende com correções, mantém
+do MazyUI — como o Claude lê o contexto, aprende com correções, mantém
 tudo atualizado e cria skills novas conforme a operação evolui.
 
 Esse arquivo é editável. Quando o `/instalar` rodar, ele complementa o
@@ -118,7 +118,7 @@ Quando o usuário pedir skill nova:
 
 ## Atualização do sistema (clientes)
 
-Cada cliente do Sabec/Os é um clone com brand, dados e memória próprios.
+Cada cliente do MazyUI é um clone com brand, dados e memória próprios.
 O sistema central evolui em `github.com/DiogoSabec/sabec-os`. Pra puxar
 melhorias do sistema central pra dentro de um cliente sem sobrescrever o
 que é dele, o cliente roda `/atualizar-sistema`.

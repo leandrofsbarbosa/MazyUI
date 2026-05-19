@@ -1,6 +1,6 @@
 ﻿# Identidade — Criador Solo
 
-> Identidade visual que rodou em cliente real do Sabec/Os — criador solo,
+> Identidade visual que rodou em cliente real do MazyUI — criador solo,
 > marca pessoal, audience-first. Adapta a tua em `identidade/design-guide.md`.
 
 ---

@@ -1,4 +1,4 @@
-# [Nome da Empresa] — Sabec/Os
+# [Nome da Empresa] — MazyUI
 
 > Molde do CLAUDE.md aplicado a **empresa estruturada** — setores,
 > processos, várias frentes rodando juntas. O sistema gira em torno

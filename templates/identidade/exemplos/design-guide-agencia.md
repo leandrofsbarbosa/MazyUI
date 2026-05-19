@@ -1,6 +1,6 @@
 ﻿# Identidade — Agência de Performance
 
-> Identidade visual que rodou em cliente real do Sabec/Os — agência de
+> Identidade visual que rodou em cliente real do MazyUI — agência de
 > performance, tom direto, sem decoração. Adapta a tua em `identidade/design-guide.md`.
 
 ---

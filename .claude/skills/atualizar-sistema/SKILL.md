@@ -1,7 +1,7 @@
 ---
 name: atualizar-sistema
 description: >
-  Atualiza APENAS o sistema do Sabec/Os (server, UI, launchers, skills, templates)
+  Atualiza APENAS o sistema do MazyUI (server, UI, launchers, skills, templates)
   no diretório do cliente, baixando o último estado do repo central do GitHub
   (DiogoSabec/sabec-os) sem tocar em dados, brand, memória ou identidade do
   cliente. Use quando o usuário rodar `/atualizar-sistema` dentro da pasta de
@@ -10,7 +10,7 @@ description: >
 
 # /atualizar-sistema — sync do sistema central
 
-Cada cliente do Sabec/Os é um clone privado com brand próprio, dados próprios
+Cada cliente do MazyUI é um clone privado com brand próprio, dados próprios
 e memória própria. O sistema em si (server, UI, skills, templates) evolui no
 repo central `DiogoSabec/sabec-os`. Essa skill puxa essas melhorias pro
 cliente sem sobrescrever nada que é dele.
@@ -28,7 +28,7 @@ git remote -v
 Se a saída mostrar `origin` apontando pra `DiogoSabec/sabec-os` ou
 `mazzeoia/MazyOS`, **PARA**:
 
-> "Isso aqui parece ser o repo central do Sabec/Os, não um cliente.
+> "Isso aqui parece ser o repo central do MazyUI, não um cliente.
 >  `/atualizar-sistema` é pra rodar dentro da pasta de um cliente
 >  (ex: ~/Documents/Empresas/Vanessa). Verifica a pasta atual."
 
@@ -61,7 +61,7 @@ git ls-remote https://github.com/DiogoSabec/sabec-os.git HEAD
 
 Se falhar (offline, sem acesso, repo privado sem auth), reporta erro claro:
 
-> "Não consegui acessar o repo central do Sabec/Os
+> "Não consegui acessar o repo central do MazyUI
 >  (github.com/DiogoSabec/sabec-os). Verifica conexão e permissões de
 >  acesso. Não foi alterado nada."
 
@@ -89,7 +89,7 @@ git log --oneline -n 50 | grep "chore: atualiza sistema do sabec-os" | head -1
 
 Se a linha contém o mesmo `$SABEC_HASH_SHORT`, responde:
 
-> "O cliente já está na última versão do Sabec/Os (`<hash>`). Nada a
+> "O cliente já está na última versão do MazyUI (`<hash>`). Nada a
 >  atualizar."
 
 Limpa o `$TMP_DIR` e encerra.
@@ -100,10 +100,10 @@ Limpa o `$TMP_DIR` e encerra.
 
 Arquivos individuais:
 
-- `sabec-server.mjs`
-- `sabec-ui.html`
-- `Abrir sabecOS.command`
-- `Abrir sabecOS.bat`
+- `mazyui-server.mjs`
+- `mazyui-ui.html`
+- `Abrir MazyUI.command`
+- `Abrir MazyUI.bat`
 - `.gitignore`
 
 Pastas (full sync — copia tudo, com merge especial pra skills):
@@ -145,7 +145,7 @@ Pra cada arquivo/pasta da whitelist, compara temp vs cliente e classifica:
 Forma de comparar (pra arquivos individuais):
 
 ```bash
-diff -q "$TMP_DIR/sabec-server.mjs" ./sabec-server.mjs
+diff -q "$TMP_DIR/mazyui-server.mjs" ./mazyui-server.mjs
 ```
 
 Pra pastas, usa `diff -rq` e parseia.
@@ -169,7 +169,7 @@ Mostra o resumo pro usuário:
 sistema sabec-os: <hash atual no cliente> → <SABEC_HASH_SHORT> (último)
 
 mudanças:
-  modificados (N): sabec-server.mjs, sabec-ui.html, .claude/skills/carrossel/SKILL.md
+  modificados (N): mazyui-server.mjs, mazyui-ui.html, .claude/skills/carrossel/SKILL.md
   novos (M):       .claude/skills/<nova-skill>/SKILL.md, templates/<x>
   removidos (K):   templates/<y>  (não vou remover — só aviso)
 
@@ -196,10 +196,10 @@ Só roda se o usuário disser [s].
 ### 6.1 — Arquivos individuais
 
 ```bash
-cp "$TMP_DIR/sabec-server.mjs" ./sabec-server.mjs
-cp "$TMP_DIR/sabec-ui.html" ./sabec-ui.html
-cp "$TMP_DIR/Abrir sabecOS.command" "./Abrir sabecOS.command"
-cp "$TMP_DIR/Abrir sabecOS.bat" "./Abrir sabecOS.bat"
+cp "$TMP_DIR/mazyui-server.mjs" ./mazyui-server.mjs
+cp "$TMP_DIR/mazyui-ui.html" ./mazyui-ui.html
+cp "$TMP_DIR/Abrir MazyUI.command" "./Abrir MazyUI.command"
+cp "$TMP_DIR/Abrir MazyUI.bat" "./Abrir MazyUI.bat"
 cp "$TMP_DIR/.gitignore" ./.gitignore
 ```
 
@@ -330,8 +330,8 @@ Sempre roda — mesmo se o usuário cancelou na Fase 5.
 - **Sabec-os privado, sem auth**: mesma coisa, erro claro
 - **Cliente sem .claude/skills/**: cria o diretório antes de sincronizar
 - **Cliente sem templates/**: idem
-- **Arquivo `Abrir sabecOS.command` perdeu o bit de executável após
-  cópia**: roda `chmod +x "Abrir sabecOS.command"` no fim da Fase 6.1
+- **Arquivo `Abrir MazyUI.command` perdeu o bit de executável após
+  cópia**: roda `chmod +x "Abrir MazyUI.command"` no fim da Fase 6.1
 - **Usuário cancela no meio**: não rola rollback (não foi commitado
   ainda). Próxima rodada vai detectar e oferecer de novo
 
