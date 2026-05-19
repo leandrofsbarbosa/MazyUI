@@ -1,11 +1,6 @@
 # MazyUI — Painel local pra operar negócio via Claude Code
 
-> Espelho público de um sistema operacional pra solopreneurs e marcas pessoais.
 > Roda 100% local, navegador como interface, Claude Code como motor.
-
-## Origem
-
-Este repositório é um fork do [MazyOS](https://github.com/mazzeoia/MazyOS) original, criado por [Vagner Mazzeo](https://mazzeoia.com.br). O nome **MazyUI** é uma homenagem ao projeto original.
 
 ## O que faz
 
@@ -47,7 +42,3 @@ O sistema usa `brand.config.js` pra controlar nome, autores, título, etc. Edita
 ## Skills disponíveis
 
 `/abrir`, `/salvar`, `/atualizar`, `/novo-projeto`, `/mapear-rotinas`, `/carrossel`, `/publicar-tema`, `/seo`, `/responder-avaliacoes`, `/aprovar-post`, `/anuncio-google`, `/relatorio-ads`, `/analisar-dados`, `/email-profissional`, `/instalar` — detalhes em `.claude/skills/`.
-
-## Créditos
-
-- **MazyOS original:** [Vagner Mazzeo](https://mazzeoia.com.br) — [mazzeoia/MazyOS](https://github.com/mazzeoia/MazyOS)
