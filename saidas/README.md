@@ -1,4 +1,4 @@
-# saidas/ — outputs gerais do Sabec/Os
+# saidas/ — outputs gerais do MazyUI
 
 Pasta pra qualquer output que não é marketing puro (não cabe em `marketing/`).
 

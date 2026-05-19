@@ -1,6 +1,6 @@
 # dados/ — drop zone
 
-Solte aqui qualquer arquivo que você quer que o Sabec/Os leia uma vez: CSV
+Solte aqui qualquer arquivo que você quer que o MazyUI leia uma vez: CSV
 de exportação do Google Ads, planilha de vendas, PDF de contrato,
 transcrição de reunião, print de relatório.
 

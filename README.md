@@ -41,8 +41,8 @@ cd MazyUI
 ```
 
 Depois:
-- **macOS:** dois cliques em `Abrir sabecOS.command`
-- **Windows:** dois cliques em `Abrir sabecOS.bat`
+- **macOS:** dois cliques em `Abrir MazyUI.command`
+- **Windows:** dois cliques em `Abrir MazyUI.bat`
 
 Pré-requisitos:
 - [Node.js 18+](https://nodejs.org)
@@ -50,7 +50,7 @@ Pré-requisitos:
 
 No macOS, na primeira execução, libera o script:
 ```bash
-chmod +x "Abrir sabecOS.command"
+chmod +x "Abrir MazyUI.command"
 ```
 
 ## Customizar a marca pra ti

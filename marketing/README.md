@@ -1,6 +1,6 @@
-# marketing/ — saídas do Sabec/Os
+# marketing/ — saídas do MazyUI
 
-Tudo que as skills de marketing produzem cai aqui. Skills do Sabec/Os já sabem onde salvar — você raramente precisa criar pasta manualmente.
+Tudo que as skills de marketing produzem cai aqui. Skills do MazyUI já sabem onde salvar — você raramente precisa criar pasta manualmente.
 
 ## Estrutura padrão
 

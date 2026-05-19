@@ -1,4 +1,4 @@
-# scripts/ — utilitários do Sabec/Os
+# scripts/ — utilitários do MazyUI
 
 Scripts Node.js e Python que as skills chamam quando precisam fazer coisas fora do alcance da IA pura (gerar imagem, postar em rede social, renderizar HTML em PNG).
 
@@ -38,7 +38,7 @@ npm install playwright
 npx playwright install chromium
 ```
 
-## Como o Sabec/Os lida com isso
+## Como o MazyUI lida com isso
 
 Quando você roda uma skill que precisa de script ausente, o Claude vai:
 
