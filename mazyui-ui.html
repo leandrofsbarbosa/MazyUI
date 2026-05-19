@@ -126,6 +126,11 @@
     opacity: 0.8;
   }
   .nav-item.active .ico { opacity: 1; }
+  .nav-sep {
+    height: 1px;
+    background: rgba(245,240,232,0.10);
+    margin: 10px 14px 8px;
+  }
   .sidebar-footer {
     padding: 16px 24px 0;
     border-top: 1px solid rgba(245,240,232,0.10);
@@ -2036,6 +2041,68 @@ const state = {
 
 const IDENTITY_HISTORY_MAX = 20;
 
+/* ============================================================
+   Extension API — clientes registram painéis em local-ui.js
+   Internos são definidos em NAV; custom panels caem abaixo do
+   separador na sidebar. Match exato por id.
+   ============================================================ */
+const customPanels = new Map(); // id -> def
+let currentCustomPanel = null;  // { id, def } | null pra orquestrar onUnmount
+
+function makePanelCtx() {
+  return {
+    state,
+    setTopbar,
+    setActive,
+    api: {
+      async call(method, p, body) {
+        const opts = { method: (method || 'GET').toUpperCase(), headers: {} };
+        if (body !== undefined && body !== null) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = typeof body === 'string' ? body : JSON.stringify(body);
+        }
+        const r = await fetch(p, opts);
+        const txt = await r.text();
+        let payload;
+        try { payload = txt ? JSON.parse(txt) : null; } catch { payload = txt; }
+        if (!r.ok) {
+          const msg = payload && typeof payload === 'object' && payload.error
+            ? payload.error : `HTTP ${r.status}`;
+          throw new Error(msg);
+        }
+        return payload;
+      },
+    },
+    fileUrl: (p) => fileUrl(p),
+    toast: (msg) => toast(msg),
+    escapeHtml: (s) => escapeHtml(s),
+  };
+}
+
+window.Sabec = {
+  registerPanel(def) {
+    if (!def || typeof def !== 'object' || !def.id || typeof def.onMount !== 'function') {
+      console.warn('[mazyui] registerPanel: esperado { id, label, onMount, ... }', def);
+      return;
+    }
+    customPanels.set(def.id, def);
+    if (state.loaded) render();
+  },
+  setActive: (id) => setActive(id),
+  setTopbar: (crumb, title, actions) => setTopbar(crumb, title, actions || ''),
+  toast: (msg) => toast(msg),
+};
+
+function loadLocalUi() {
+  return new Promise(resolve => {
+    const s = document.createElement('script');
+    s.src = '/local-ui.js';
+    s.onload = () => resolve();
+    s.onerror = () => resolve(); // 404 silencioso — cliente sem extensão
+    document.head.appendChild(s);
+  });
+}
+
 function newId(prefix) {
   return prefix + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 }
@@ -2320,6 +2387,8 @@ async function boot() {
     document.getElementById('folder-name').textContent = s.folderName;
     document.getElementById('brand-tag').textContent = state.business.name || 'Painel';
   updateBrandLogo();
+    // Carrega extensão de UI do cliente (opcional) — 404 silencioso se não tem.
+    await loadLocalUi();
     if (!localStorage.getItem(CONSENT_KEY)) {
       renderConsent();
     } else {
@@ -2536,13 +2605,25 @@ function applyIdentityToCSS(md) {
 /* ============================================================
    Render: nav + chrome
    ============================================================ */
+function navItemHTML(n) {
+  return `
+    <button class="nav-item ${state.active === n.id ? 'active' : ''}" data-tab="${n.id}">
+      <span class="ico">${escapeHtml(n.glyph)}</span><span>${escapeHtml(n.label)}</span>
+    </button>
+  `;
+}
 function renderNav() {
   const el = document.getElementById('nav');
-  el.innerHTML = NAV.map(n => `
-    <button class="nav-item ${state.active === n.id ? 'active' : ''}" data-tab="${n.id}">
-      <span class="ico">${n.glyph}</span><span>${n.label}</span>
-    </button>
-  `).join('');
+  const internalHTML = NAV.map(navItemHTML).join('');
+  const customs = [...customPanels.values()].filter(p => p.sidebar !== false);
+  const customHTML = customs.length
+    ? '<div class="nav-sep" aria-hidden="true"></div>' + customs.map(p => navItemHTML({
+        id: p.id,
+        label: p.label || p.id,
+        glyph: (p.glyph || (p.label || p.id).slice(0, 1)).toString().toUpperCase(),
+      })).join('')
+    : '';
+  el.innerHTML = internalHTML + customHTML;
   el.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => setActive(b.dataset.tab)));
 }
 function setActive(id) { state.active = id; renderNav(); render(); }
@@ -3436,7 +3517,26 @@ function renderTurnHTML(turn) {
    ============================================================ */
 function render() {
   if (!state.loaded) return;
+  // Trocou de aba? Desmonta o painel custom anterior antes de pintar o novo.
+  if (currentCustomPanel && currentCustomPanel.id !== state.active) {
+    try { currentCustomPanel.def.onUnmount && currentCustomPanel.def.onUnmount(); }
+    catch (e) { console.warn('[mazyui] onUnmount falhou:', e); }
+    currentCustomPanel = null;
+  }
   renderNav();
+  if (customPanels.has(state.active)) {
+    const def = customPanels.get(state.active);
+    setTopbar(def.crumb || def.label || def.id, def.label || def.id);
+    const c = document.getElementById('content');
+    c.innerHTML = '';
+    try {
+      def.onMount(c, makePanelCtx());
+      currentCustomPanel = { id: def.id, def };
+    } catch (e) {
+      c.innerHTML = `<div class="card"><strong>Erro no painel "${escapeHtml(def.label || def.id)}"</strong><br><span style="color:var(--ink-muted);font-size:13px;">${escapeHtml(String(e.message || e))}</span></div>`;
+    }
+    return;
+  }
   switch (state.active) {
     case 'hoje':            renderHoje(); break;
     case 'chat':            renderChat(); break;

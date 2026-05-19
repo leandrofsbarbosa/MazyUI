@@ -135,3 +135,93 @@ sistema. O cliente acrescenta customizações abaixo desse separador.
 `/atualizar-sistema` preserva tudo o que estiver depois do último `---`.
 
 ---
+
+## Extensões locais por cliente
+
+Cada cliente precisa de coisas próprias: caixa pra clínica, prontuários
+pra dentista, agenda pra terapeuta. O contrato é simples:
+
+- **Código de sistema** (`mazyui-server.mjs`, `mazyui-ui.html`) → evolui
+  no repo central, sobrescrito a cada `/atualizar-sistema`.
+- **Código do cliente** (`local-routes.mjs`, `local-ui.js`) →
+  intocável pelo sync. É onde feature custom mora.
+
+Editar `mazyui-server.mjs` ou `mazyui-ui.html` direto pra adicionar uma
+feature do cliente **vira lixo no próximo sync** — é assim que clientes
+perdem código. Use os hooks abaixo.
+
+### Servidor: `local-routes.mjs`
+
+Arquivo opcional na raiz do cliente. Se existe, o servidor carrega
+antes de escutar e chama `register({ ROOT, helpers, addRoute })`:
+
+```js
+// local-routes.mjs
+export function register({ ROOT, helpers, addRoute }) {
+  addRoute('GET', '/api/caixa', (req, res) => {
+    const data = helpers.readSafe('dados/caixa.csv');
+    helpers.json(res, 200, { csv: data });
+  });
+
+  addRoute('POST', '/api/caixa', async (req, res) => {
+    const body = await helpers.readBody(req);
+    // ... persiste em dados/caixa.csv usando helpers.safeResolve(...)
+    helpers.json(res, 200, { ok: true });
+  });
+}
+```
+
+Helpers disponíveis: `json(res, status, payload)`, `text(res, status,
+body, ct?)`, `readBody(req)`, `safeResolve(rel)`, `readSafe(rel)`. O
+match de rota é por (método, path) exato — rotas internas vencem em
+caso de conflito, então use prefixos próprios (ex: `/api/caixa/...`).
+
+Se `register()` lançar, o servidor loga e continua subindo com as
+rotas internas — extensão quebrada nunca derruba o painel.
+
+### UI: `local-ui.js`
+
+Arquivo opcional na raiz do cliente. Carregado depois do boot, registra
+painéis via `window.Sabec.registerPanel(def)`:
+
+```js
+// local-ui.js
+window.Sabec.registerPanel({
+  id:      'caixa',
+  label:   'Caixa',
+  crumb:   'Caixa',
+  glyph:   'C',
+  sidebar: true,
+  onMount: async (container, ctx) => {
+    const data = await ctx.api.call('GET', '/api/caixa');
+    container.innerHTML = `<div class="card"><pre>${data.csv}</pre></div>`;
+  },
+  onUnmount: () => { /* cleanup opcional */ },
+});
+```
+
+O painel aparece na sidebar abaixo de um separador, depois dos items
+internos do sistema. O `ctx` passado pra `onMount` traz:
+
+- `state` — leitura do estado da UI (memória, library, business)
+- `setTopbar(crumb, title, actionsHTML?)` — atualiza header
+- `setActive(id)` — navega pra outro painel
+- `api.call(method, path, body?)` — fetch envelopado com JSON e erro
+- `fileUrl(path)` — URL pra servir arquivo do workspace
+- `toast(msg)` — notificação curta
+- `escapeHtml(str)` — sanitização básica
+
+### O que NUNCA fazer
+
+- Editar `mazyui-server.mjs` ou `mazyui-ui.html` pra adicionar feature de
+  cliente — `/atualizar-sistema` vai sobrescrever e a feature some.
+- Persistir dados do cliente em qualquer lugar fora de `dados/`,
+  `_memoria/`, ou pastas custom listadas em CLIENTE na skill
+  `/atualizar-sistema`.
+- Importar bibliotecas externas no `local-routes.mjs` — sistema não tem
+  build, depende só da stdlib do Node.
+
+Editou `local-*`? Reinicia o servidor pelo botão da topbar. Mudanças
+em runtime não são suportadas de propósito.
+
+---

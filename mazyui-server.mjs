@@ -484,38 +484,99 @@ async function handleOpenFolder(req, res) {
 }
 
 // ============================================================
+// Roteamento — tabela única que internas e extensões populam
+// Match por (método, path) exato; primeira ocorrência ganha, então
+// internas (registradas primeiro) não podem ser sobrescritas por extensão.
+// ============================================================
+const routes = [];
+
+function addRoute(method, p, handler) {
+  if (typeof method !== 'string' || typeof p !== 'string' || typeof handler !== 'function') {
+    throw new Error('addRoute(method, path, handler): tipos inválidos');
+  }
+  routes.push({ method: method.toUpperCase(), path: p, handler });
+}
+
+function handleRoot(req, res) {
+  const file = path.join(ROOT, 'mazyui-ui.html');
+  if (!fs.existsSync(file)) return text(res, 404, 'mazyui-ui.html não encontrado');
+  const html = renderBrand(fs.readFileSync(file, 'utf8'));
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.end(html);
+}
+
+// Servido com onerror silencioso pelo <script> da UI — 404 quando o cliente
+// não tem extensão; conteúdo do arquivo quando tem.
+function handleLocalUi(req, res) {
+  const file = path.join(ROOT, 'local-ui.js');
+  if (!fs.existsSync(file)) return text(res, 404, 'sem local-ui.js');
+  res.writeHead(200, {
+    'Content-Type': 'text/javascript; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  fs.createReadStream(file).pipe(res);
+}
+
+addRoute('GET',  '/',                    handleRoot);
+addRoute('GET',  '/index.html',          handleRoot);
+addRoute('GET',  '/local-ui.js',         handleLocalUi);
+addRoute('GET',  '/api/state',           handleState);
+addRoute('POST', '/api/save',            handleSave);
+addRoute('POST', '/api/delete-file',     handleDeleteFile);
+addRoute('GET',  '/api/file',            (req, res, url) => handleFile(req, res, url));
+addRoute('POST', '/api/run',             handleRun);
+addRoute('POST', '/api/cancel',          handleCancel);
+addRoute('POST', '/api/shutdown',        handleShutdown);
+addRoute('POST', '/api/restart',         handleRestart);
+addRoute('POST', '/api/open-folder',     handleOpenFolder);
+addRoute('POST', '/api/snapshot-siblings', handleSnapshotSiblings);
+addRoute('POST', '/api/restore-siblings',  handleRestoreSiblings);
+
+// ============================================================
+// Hook de extensão: carrega ./local-routes.mjs se existir
+// ============================================================
+async function loadLocalRoutes() {
+  const localPath = path.join(ROOT, 'local-routes.mjs');
+  if (!fs.existsSync(localPath)) return;
+  try {
+    // file:// URL pra import dinâmico funcionar bem em windows também
+    const mod = await import(new URL('file://' + localPath).href);
+    if (typeof mod.register !== 'function') {
+      console.warn('[mazyui] local-routes.mjs existe mas não exporta register({...}). Ignorando.');
+      return;
+    }
+    mod.register({
+      ROOT,
+      helpers: { json, text, readBody, safeResolve, readSafe },
+      addRoute,
+    });
+    console.log('[mazyui] local-routes.mjs carregado.');
+  } catch (e) {
+    console.error('[mazyui] Erro carregando local-routes.mjs — extensão ignorada:', e.message);
+  }
+}
+
+// ============================================================
 // Server
 // ============================================================
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const p = url.pathname;
+  const method = req.method;
 
   try {
-    if (p === '/' || p === '/index.html') {
-      const file = path.join(ROOT, 'mazyui-ui.html');
-      if (!fs.existsSync(file)) return text(res, 404, 'mazyui-ui.html não encontrado');
-      const html = renderBrand(fs.readFileSync(file, 'utf8'));
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      return res.end(html);
+    for (const r of routes) {
+      if (r.method === method && r.path === p) {
+        return r.handler(req, res, url);
+      }
     }
-
-    if (p === '/api/state' && req.method === 'GET') return handleState(req, res);
-    if (p === '/api/save' && req.method === 'POST') return handleSave(req, res);
-    if (p === '/api/delete-file' && req.method === 'POST') return handleDeleteFile(req, res);
-    if (p === '/api/file' && req.method === 'GET') return handleFile(req, res, url);
-    if (p === '/api/run' && req.method === 'POST') return handleRun(req, res);
-    if (p === '/api/cancel' && req.method === 'POST') return handleCancel(req, res);
-    if (p === '/api/shutdown' && req.method === 'POST') return handleShutdown(req, res);
-    if (p === '/api/restart'  && req.method === 'POST') return handleRestart(req, res);
-    if (p === '/api/open-folder' && req.method === 'POST') return handleOpenFolder(req, res);
-    if (p === '/api/snapshot-siblings' && req.method === 'POST') return handleSnapshotSiblings(req, res);
-    if (p === '/api/restore-siblings'  && req.method === 'POST') return handleRestoreSiblings(req, res);
-
     text(res, 404, 'Não encontrado');
   } catch (e) {
     text(res, 500, 'Erro: ' + (e.message || e));
   }
 });
+
+await loadLocalRoutes();
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`\n  ${brand.consoleLabel}`);

@@ -126,11 +126,21 @@ NUNCA copia nem sobrescreve:
 - `REFERENCIAS/` — docs do cliente
 - `marketing/`, `saidas/`, `dados/`, `pacientes/`, `clientes/` — conteúdo
   gerado e dados operacionais
+- `local-routes.mjs` — extensão de servidor do cliente (rotas custom)
+- `local-ui.js` — extensão de UI do cliente (painéis custom)
 - `*.code-workspace`
 - `package-lock.json`
 - `node_modules/`
 - `.git/`
 - `_inbox/`, `_arquivo/` (se existirem)
+
+**Importante:** `local-routes.mjs` e `local-ui.js` são o contrato de
+extensão do MazyUI. Cliente coloca rotas e painéis próprios nesses
+arquivos pra que `mazyui-server.mjs` e `mazyui-ui.html` (os arquivos do
+sistema) possam ser atualizados livremente sem perder customizações.
+Se você for editar `mazyui-server.mjs` ou `mazyui-ui.html` "só pra
+adicionar uma coisinha" — pare. Mova pra `local-*` antes que o próximo
+sync apague.
 
 ## Fase 4 — Detecta mudanças
 
@@ -304,6 +314,46 @@ fs.writeFileSync('./CLAUDE.md', merged.endsWith('\n') ? merged : merged + '\n');
 "
 ```
 
+## Fase 6.5 — Verificação pós-sync
+
+Antes de commitar, confere duas invariantes:
+
+### 1. `mazyui-server.mjs` e `mazyui-ui.html` bateram com o central
+
+```bash
+diff -q "$TMP_DIR/mazyui-server.mjs" ./mazyui-server.mjs && \
+  echo "  ✓ mazyui-server.mjs = central" || echo "  ✗ mazyui-server.mjs DIVERGE"
+diff -q "$TMP_DIR/mazyui-ui.html" ./mazyui-ui.html && \
+  echo "  ✓ mazyui-ui.html = central" || echo "  ✗ mazyui-ui.html DIVERGE"
+```
+
+Se algum diverge, é bug do sync — reporta e não commita.
+
+### 2. `local-routes.mjs` e `local-ui.js` continuam intactos
+
+Antes da Fase 6 começar, salva o hash:
+
+```bash
+LOCAL_ROUTES_HASH_BEFORE=$(test -f ./local-routes.mjs && shasum -a 256 ./local-routes.mjs | awk '{print $1}' || echo "ausente")
+LOCAL_UI_HASH_BEFORE=$(test -f ./local-ui.js && shasum -a 256 ./local-ui.js | awk '{print $1}' || echo "ausente")
+```
+
+Depois da Fase 6:
+
+```bash
+LOCAL_ROUTES_HASH_AFTER=$(test -f ./local-routes.mjs && shasum -a 256 ./local-routes.mjs | awk '{print $1}' || echo "ausente")
+LOCAL_UI_HASH_AFTER=$(test -f ./local-ui.js && shasum -a 256 ./local-ui.js | awk '{print $1}' || echo "ausente")
+
+[ "$LOCAL_ROUTES_HASH_BEFORE" = "$LOCAL_ROUTES_HASH_AFTER" ] && \
+  echo "  ✓ local-routes.mjs intacto" || echo "  ✗ local-routes.mjs MUDOU — BUG no sync"
+[ "$LOCAL_UI_HASH_BEFORE" = "$LOCAL_UI_HASH_AFTER" ] && \
+  echo "  ✓ local-ui.js intacto" || echo "  ✗ local-ui.js MUDOU — BUG no sync"
+```
+
+Se algum hash mudou, é bug do sync — reporta, NÃO commita, e instrui o
+usuário a fazer `git checkout -- local-routes.mjs local-ui.js` pra
+recuperar.
+
 ## Fase 7 — Commit
 
 ```bash
@@ -339,7 +389,7 @@ Sempre roda — mesmo se o usuário cancelou na Fase 5.
 
 - Nunca toca em `brand.config.js`, `_memoria/`, `identidade/`,
   `REFERENCIAS/`, `marketing/`, `saidas/`, `dados/`, `pacientes/`,
-  `clientes/`
+  `clientes/`, `local-routes.mjs`, `local-ui.js`
 - Não roda `git commit` automático em cima de mudanças não-relacionadas
   do cliente (a Pré-checagem #2 já bloqueia)
 - Não remove arquivos do cliente que sumiram do sabec-os — só avisa.
