@@ -19,9 +19,9 @@ export { extractFocus, extractTone as extractToneSummary, extractNextSteps, extr
  */
 export function extractBusiness(md) {
   if (!md) return { name: '—', tagline: '—' };
-  const nameMatch = md.match(/\*\*Nome:\*\*\s*([^\n]+)/i);
-  const doMatch   = md.match(/\*\*O que faz:\*\*\s*([^\n]+)/i);
-  const negMatch  = md.match(/\*\*Neg[óo]cio:\*\*\s*([^\n]+)/i);
+  const nameMatch = md.match(/\*\*Nome:\*\*[ \t]*([^\r\n]+)/i);
+  const doMatch   = md.match(/\*\*O que faz:\*\*[ \t]*([^\r\n]+)/i);
+  const negMatch  = md.match(/\*\*Neg[óo]cio:\*\*[ \t]*([^\r\n]+)/i);
   return {
     name: nameMatch ? nameMatch[1].trim() : '—',
     tagline: doMatch ? doMatch[1].trim() : (negMatch ? negMatch[1].trim() : '—'),

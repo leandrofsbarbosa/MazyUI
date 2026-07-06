@@ -15,7 +15,7 @@ import { dispatchRun } from './chat-stream.js';
 // ---------------------------------------------------------------------------
 
 const SKILLS = [
-  { id: 'instalar',    cat: 'NÚCLEO',     title: 'Instalar {{BRAND_NAME}}',       cmd: '/instalar',
+  { id: 'instalar',    cat: 'NÚCLEO',     title: 'Instalar sistema',       cmd: '/instalar',
     desc: 'Entrevista guiada que preenche empresa, preferências, estratégia e identidade visual.', form: 'none' },
   { id: 'abrir',       cat: 'NÚCLEO',     title: 'Abrir sessão',          cmd: '/abrir',
     desc: 'Carrega a memória do negócio e devolve um resumo do que importa hoje.', form: 'none' },
@@ -397,10 +397,10 @@ function skillsView() {
         <div class="skills-grid">
           ${items.map(s => html`
             <div class="skill-card" @click=${() => openSkillModal(s.id)}>
-              <div class="cat">${escapeHtml(s.cat)}</div>
-              <h4>${escapeHtml(s.title)}</h4>
-              <p>${escapeHtml(s.desc)}</p>
-              <div class="cmd">${escapeHtml(s.cmd)}</div>
+              <div class="cat">${s.cat}</div>
+              <h4>${s.title}</h4>
+              <p>${s.desc}</p>
+              <div class="cmd">${s.cmd}</div>
             </div>
           `)}
         </div>

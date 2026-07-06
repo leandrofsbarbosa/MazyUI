@@ -59,13 +59,13 @@ export function renderChatMarkdown(text) {
  */
 export function extractBusiness(md) {
   if (!md) return '';
-  const nameMatch = md.match(/\*\*Nome:\*\*\s*([^\n]+)/i);
+  const nameMatch = md.match(/\*\*Nome:\*\*[ \t]*([^\r\n]+)/i);
   if (nameMatch) return nameMatch[1].trim();
-  // Fallback: primeiro parágrafo não-vazio
+  // Fallback: primeiro parágrafo não-vazio (ignora linhas que são só rótulos "**Campo:**")
   const lines = md.split('\n');
   for (const line of lines) {
     const t = line.replace(/^#+\s*/, '').replace(/\*\*/g, '').trim();
-    if (t) return t;
+    if (t && !/:$/.test(t)) return t;
   }
   return '';
 }
@@ -79,9 +79,9 @@ export function extractBusiness(md) {
  */
 export function extractFocus(md) {
   if (!md) return '';
-  const m = md.match(/##\s*Prioridade principal\s*\n+\*\*([^*]+)\*\*/i);
+  const m = md.match(/##\s*Prioridade principal\s*\n+(?!##)\*\*([^*]+)\*\*/i);
   if (m) return m[1].trim().replace(/\.$/, '');
-  const m2 = md.match(/##\s*Prioridade principal\s*\n+([^\n]+)/i);
+  const m2 = md.match(/##\s*Prioridade principal\s*\n+(?!##)([^\r\n]+)/i);
   return m2 ? m2[1].trim().replace(/^\*+|\*+$/g, '') : '';
 }
 
@@ -94,7 +94,7 @@ export function extractFocus(md) {
  */
 export function extractTone(md) {
   if (!md) return '';
-  const m = md.match(/##\s*Tom de voz\s*\n+([^\n]+)/i);
+  const m = md.match(/##\s*Tom de voz\s*\n+(?!##)([^\r\n]+)/i);
   return m ? m[1].split('.')[0].trim() + '.' : '';
 }
 

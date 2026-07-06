@@ -8,10 +8,10 @@
 // (privado), com brand divergente. Veja README.md pra entender a cadeia.
 
 export const brand = {
-  name: 'MazyUI',
-  title: 'MazyUI — Painel',
-  authors: 'feito por Vagner Mazzeo &amp; Diogo Sabec',
-  markHtml: 'Mazy<span class="os">UI</span>',
-  welcome: 'Bem-vindo ao MazyUI',
-  consoleLabel: 'MazyUI painel',
+  name: 'leandroOS',
+  title: 'leandroOS — Painel',
+  authors: 'por Leandro · base MazyUI (Mazzeo &amp; Sabec)',
+  markHtml: 'leandro<span class="os">OS</span>',
+  welcome: 'Bem-vindo ao leandroOS',
+  consoleLabel: 'leandroOS painel',
 };
